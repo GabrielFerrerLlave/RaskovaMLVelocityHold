@@ -1,0 +1,311 @@
+%% S&C Program
+clear;
+clc;
+close all;
+
+%% Description
+% Due to the massive amount of data, all coefficient/derivative variables
+% are vectors. 1st row is the neutral case, 2nd row is the case at the
+% highest speed, 3rd row is the case at the stall speed, 4th row is the
+% case at landing speed.
+
+
+%% Step 0 Load Airplane Constants
+% Note: de has a reversed sign (sorry I read stuff wrong), so the czde coefficient is reversed, so
+% there is no negative sign when dimensionalizing. Values are correct.
+
+U1 = [42.586; 34.443; 26.231; 18.283]
+m = 14.13 % lbs, mass
+S = 22.5 % ft^2, wing area (both wings)
+SHT = 3.012 % ft^2, HT wing area, estimated from Flow5
+b = 22.5 
+rho = 0.00237799 % slugs/ft^3
+qbar = 0.5*rho*U1.^2
+c = 1 % ft
+AR = b^2/S 
+TailArm = (62/12) %Inches, converted to feet. 
+g = 32.174; % ft/sec^2
+
+
+Iyy = 16.0902/g %slug*ft^2
+Ixx = 218.421/g
+Izz = 234.301/g
+Ixz = 1.05963/g
+%% Step 1 Define Coefficients
+
+% Neutral Position shit
+Cxu = [-0.00428864; -0.00585801; -0.0237278; -0.0917245]
+Czu = [-0.000565957; -0.000403307; -0.00070273; -0.0442084]
+Cmu = [1.70374*10^-7; 1.64568*10^-7;  1.19906*10^-7; 7.80117*10^-9]
+
+Cxa = [0.243792; 0.293947; 0.642386; 1.32778]
+Cza = [-6.03545;-6.01379; -5.91513; -5.65946]
+Cma = [-2.0386; -1.97107; -1.80528; -1.69243]
+
+Cmq = [-21.4352; -20.7916; -19.0574; -17.3262]
+
+Cyb = [-0.272287; -0.271298; -0.267942; -0.260152]
+Clb = [-0.0119039; -0.0113255; -0.00715358; 0.000962145]
+Cnb = [0.0540292; 0.0539216; 0.05372; 0.052139]
+
+Cyp = [0.00640486; 0.00751847; 0.0159688; 0.0323228]
+Clp = [-0.84549; -0.844884; -0.837994; -0.81098]
+Cnp = [-0.00111172; -0.00132592; -0.00298377; -0.00617367]
+
+Cyr = [0.116504; 0.11609; 0.114302; 0.108483]
+Clr = [0.00244187; 0.00161682; -0.00423233; -0.0155111]
+Cnr = [-0.0231892; -0.0231449; -0.0229849; -0.0217853]
+
+Cxde = [0.00392633; 0.0056798; 0.00740477; 0.0111734]
+Czde = [-0.121056; -0.113508; -0.109375; -0.106289]
+Cmde = [-0.499243; -0.469241; -0.451359; -0.425359]
+
+Cydr = [0.070878; 0.070236; 0.0693164; 0.0650324]
+Cldr = [0.0033265; 0.00285351; 0.00208645; 4.67621*10^-6]
+Cndr = [-0.0145853; -0.0145415; -0.0144562; -0.0136316]
+
+Cyda = [-0.013768; -0.0134696; -0.0131228; -0.0120023]
+Clda = [0.094126; 0.0938839; 0.0932797; 0.0901228]
+Cnda = [0.0027233; 0.002685; 0.00264304; 0.00244753]
+
+CLalphaw = [0.1000949; 0.133514; 0.09161; 0]  % Estimated from interpolation around trim
+dedivdalpha = (2*CLalphaw)./(pi()*AR)
+CLalphaHT = [0.0743495; 0.069904; 0.076342; 0]
+CLalphadot = 2*CLalphaHT.*dedivdalpha.*(TailArm*SHT)/S*c
+Cmalphadot = -CLalphadot*(TailArm/c)
+
+ % ft/s
+theta1 = 0 % IN DEGREES
+
+%% Step  1bcalculate alphadot equations
+
+
+
+
+
+
+
+%% Step 2a Dimensionalize Longitudinal Derivatives
+udimcoeff = (qbar*S)./(m.*U1)
+alphadimcoeff = (qbar*S)/m
+
+Xu = Cxu.*udimcoeff
+Zu = Czu.*udimcoeff
+Mu = Cmu .* (qbar*S*c)./(Iyy*U1)
+
+Xa = Cxa.*alphadimcoeff
+Za = Cza.*alphadimcoeff
+Ma = Cma.*(qbar*S*c)./Iyy
+
+Malphadot = ((qbar*S*c^2)./(2*Iyy*U1)).*Cmalphadot
+
+Mq = ((qbar*S*c^2)./(2*Iyy.*U1)).*Cmq
+
+Xde = (1/m).*qbar*S.*Cxde %did not put negative because give cxde, not cdde
+Zde = (1/m).*qbar*S.*Czde
+Mde = ((qbar*S*c)./Iyy).*Cmde
+
+%% Step 2b Dimensionalize Lateral-Directional Derivatives 
+
+
+Yb = ((qbar*S)/(m)).*Cyb
+Lb = ((qbar*S*b)./(Ixx.*U1)).*Clb
+Nb = ((qbar*S*b)./(Izz.*U1)).*Cnb
+
+Yp = ((qbar*S*b)./(2*m*U1)).*Cyb
+Lp = ((qbar*S*b^2)./(2*Ixx*U1)).*Clp
+Np = ((qbar*S*b^2)./(2*Izz*U1)).*Cnp
+
+Yr = ((qbar*S*b)./(2*m*U1)).*Cyr
+Lr = ((qbar*S*b^2)./(2*Ixx*U1)).*Clr
+Nr = ((qbar*S*b^2)./(2*Izz.*U1)).*Cnr
+
+Ydr = ((qbar*S)/m).*Cydr
+Ldr = ((qbar*S*c)/Ixx).*Cldr
+Ndr = ((qbar*S*c)/Izz).*Cndr
+
+Yda = ((qbar*S)/m).*Cyda
+Lda = ((qbar*S*c)/Ixx).*Clda
+Nda = ((qbar*S*c)/Izz).*Cnda
+%% Step 3 Setting Up Longitudinal State Space Matrices and Systems
+% The C and D matrices are the same for every case as we want the output of
+% every state for open loop response. The only thing that changes is the A
+% and B matrices due to the different in flight conditions
+C_long = eye(4);
+C_lat = eye(5);
+D_long = zeros(4,1);
+D_lat = zeros(5,2);
+%% Long case 2
+A_long_2 = [Xu(2), Xa(2), 0, -g;
+            Zu(2)/U1(2), Za(2)/U1(2), 1, 0;
+            (Mu(2) + (1/U1(2))*(Malphadot(2)*Zu(2))), (Ma(2) + (1/U1(2))*(Malphadot(2)*Za(2))), (Mq(2) + Malphadot(2)), 0; ...
+            0, 0, 1, 0];
+B_long_2 = [Xde(2); Zde(2)/U1(2); (Mde(2) + (1/U1(2))*(Malphadot(2)*Zde(2))); 0];
+
+%% Lat Case 2
+
+A_lat_2 = [0, 1, 0, 0, 0;
+           0, Lp(2), Lb(2), Lr(2), 0;
+           g/U1(2), Yp(2)/U1(2), Yb(2)/U1(2), (Yr(2)/U1(2) - 1), 0;
+           0, Np(2), Nb(2), Nr(2), 0;
+           0, 0, 0, 1, 0];
+
+B_lat_2 = [0, 0;
+           Ldr(2), Lda(2);
+           Ydr(2)/U1(2), Yda(2)/U1(2);
+           Ndr(2), Nda(2);
+           0, 0;];
+
+%% Sim OLLONG Case 2
+tOL = 300
+tsvhold = 0.01
+%{
+open_system("GL_OL_LONG2.slx")
+GLOLLONG2 = sim("GL_OL_LONG2.slx")
+figure,
+subplot(2,2,1)
+plot(GLOLLONG2.u)
+title('u')
+subplot(2,2,2)
+plot(GLOLLONG2.alpha)
+title('alpha')
+subplot(2,2,3)
+plot(GLOLLONG2.q)
+title('q')
+subplot(2,2,4)
+plot(GLOLLONG2.theta)
+title('theta')
+%}
+%% Closed Loop: velocity
+tclv = 30
+uncontrollong2 = length(A_long_2)-rank(ctrb(A_long_2,B_long_2))
+[numlong, denlong] = ss2tf(A_long_2,B_long_2,C_long,D_long)
+%{
+open_system('GL_vhold_raskova.slx')
+vholdout = sim('GL_vhold_raskova.slx')
+figure,
+subplot(2,2,1)
+plot(vholdout.cldv)
+title('commanded change in velocity')
+subplot(2,2,2)
+plot(vholdout.vdereq)
+title('required elevator deflection')
+subplot(2,2,3)
+plot(vholdout.vresp)
+title('velocity response')
+%}
+%% NOW WITH MACHINE LEARNING
+
+%% fix rng seed
+fixedseed = rng(7,"twister")
+%% Define Observation Vector
+obsinfovhold = rlNumericSpec([4,1], LowerLimit = [-inf -inf -inf -inf]',...
+    UpperLimit = [inf inf inf inf]')
+obsinfovhold.Name = "Velocity Hold Observations"
+obsinfovhold.Description = "Error, Integrated Error, Rate of Error"
+
+actinfovhold = rlNumericSpec([1 1])
+actinfovhold.Name = "Elevator Deflection PID Gains"
+
+%% Create Environment Block
+vholdenv = rlSimulinkEnv("MLDDPG_GL_vhold_raskovav2","MLDDPG_GL_vhold_raskovav2/RLNatalyav2",...
+    obsinfovhold,actinfovhold)
+
+% Optional: Create randomized step signal
+
+%% Set simulation length and sample time
+tml = 30;
+dtml = 0.01;
+
+%% Create Critic
+
+%% state path
+statepathvhold = [featureInputLayer(obsinfovhold.Dimension(1), Name = "obsnetIn"),...
+    fullyConnectedLayer(500), reluLayer, fullyConnectedLayer(100, Name = "criticstatefc1"),...
+    reluLayer,fullyConnectedLayer(25, Name = "criticstatefc2")]
+actionpathvhold = [featureInputLayer(actinfovhold.Dimension(1), Name = "actnetIn"),...
+    fullyConnectedLayer(25, Name = "CriticActionfc1")]
+commonpathvhold = [additionLayer(2,Name = "add"), reluLayer, fullyConnectedLayer(1,Name = "CriticOutput")]
+
+criticNetvhold = dlnetwork()
+criticNetvhold = addLayers(criticNetvhold,statepathvhold)
+criticNetvhold = addLayers(criticNetvhold,actionpathvhold)
+criticNetvhold = addLayers(criticNetvhold,commonpathvhold)
+
+criticNetvhold = connectLayers(criticNetvhold,"criticstatefc2","add/in1")
+criticNetvhold = connectLayers(criticNetvhold,"CriticActionfc1","add/in2")
+
+%% Fix path
+rng(7,"twister")
+criticNetvhold = initialize(criticNetvhold)
+summary(criticNetvhold)
+
+%% Define critic
+criticvhold = rlQValueFunction(criticNetvhold,obsinfovhold,actinfovhold,...
+    ObservationInputNames="obsnetIn",ActionInputNames="actnetIn")
+%% Check Critic Value
+getValue(criticvhold, {rand(obsinfovhold.Dimension)},...
+    {rand(actinfovhold.Dimension)})
+
+%% Define Actor
+
+actornetvhold = [featureInputLayer(obsinfovhold.Dimension(1)),...
+    fullyConnectedLayer(400),...
+    tanhLayer,...
+    fullyConnectedLayer(actinfovhold.Dimension(1))]
+
+actornetvhold = dlnetwork(actornetvhold)
+summary(actornetvhold)
+
+actorvhold = rlContinuousDeterministicActor(actornetvhold,obsinfovhold,actinfovhold)
+getAction(actorvhold,{rand(obsinfovhold.Dimension)})
+
+%% Create Agent
+
+agentNatalyav2 = rlDDPGAgent(actorvhold,criticvhold)
+%% Setp Agent Options
+
+agentNatalyav2.AgentOptions.SampleTime = dtml
+agentNatalyav2.AgentOptions.DiscountFactor = 1.0
+agentNatalyav2.AgentOptions.MiniBatchSize = 400
+agentNatalyav2.AgentOptions.ExperienceBufferLength = 1*10^6
+
+actorOpts = rlOptimizerOptions(LearnRate = 10^-3,...
+    GradientThreshold=1)
+criticOpts = rlOptimizerOptions(LearnRate=10^-2,...
+    GradientThreshold=1)
+
+agentNatalyav2.AgentOptions.ActorOptimizerOptions = actorOpts
+agentNatalyav2.AgentOptions.CriticOptimizerOptions = criticOpts
+
+%% Exploration parameters
+agentNatalyav2.AgentOptions.NoiseOptions.StandardDeviation = 0.3;
+agentNatalyav2.AgentOptions.NoiseOptions.StandardDeviationDecayRate = 10^-5
+
+%% test agent
+getAction(agentNatalyav2,{rand(obsinfovhold.Dimension)})
+
+%% Train Options
+
+trainOpts = rlTrainingOptions(MaxEpisodes = 1500,...
+    MaxStepsPerEpisode = ceil(tml/dtml),...
+    Plots="training-progress",...
+    Verbose=false,...
+    StopTrainingCriteria="EvaluationStatistic",...
+    StopTrainingValue=2000)
+
+
+%% Agent Evaluator
+evl = rlEvaluator(EvaluationFrequency=5,NumEpisodes=5)
+rng(7,"twister")
+
+%% THE GOLDEN BUTTON: set dotraining to 1 to engage training
+
+dotraining = 1
+if dotraining == 1
+    trainingStatsvhold = train(agentNatalyav2,vholdenv,trainOpts,...
+        Evaluator=evl)
+else
+end
+% Version is good, but not perfect. Save this, and begin next version.
+%Version is an improvement, next step is
